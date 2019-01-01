@@ -3,20 +3,20 @@
 using namespace std;
 
 class GenericGreeter {
-public:
-	virtual void Greet(const char* name) {
+ public:
+	void Greet(const char* name) {
 		cout << "Hi " << name << "." << endl;
 	}
 };
 
-class FriendlyGreeter {
-public:
-	virtual void Greet(const char* name) {
+class FriendlyGreeter : public GenericGreeter {
+ public:
+	void Greet(const char* name) {
 		cout << "Hello " << name << "! It's a pleasure to meet you!" << endl;
 	}
 };
 
-int main2() {
+int main() {
 	FriendlyGreeter* friendlyGreeter = new FriendlyGreeter;
 	GenericGreeter* genericGreeter = (GenericGreeter*)friendlyGreeter;
 
@@ -25,6 +25,5 @@ int main2() {
 
 	delete friendlyGreeter;
 
-	system("PAUSE");
 	return 0;
 }

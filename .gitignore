@@ -332,3 +332,9 @@ ASALocalRun/
 
 # Local History for Visual Studio
 .localhistory/
+
+# CMake build directory
+build/
+
+# VS Code Project Files
+.vscode/

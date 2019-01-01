@@ -53,8 +53,8 @@ public:
 		myNum = rand();
 	}
 
+	// Preventing inling to force an apples-to-apples comparison
 	__declspec(noinline) void Update() {
-	//void Update() {
 		g_updateCount += myNum;
 	}
 };
