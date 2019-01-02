@@ -4,26 +4,26 @@ using namespace std;
 
 class GenericGreeter {
  public:
-	void Greet(const char* name) {
-		cout << "Hi " << name << "." << endl;
-	}
+  void Greet(const char* name) {
+    cout << "Hi " << name << "." << endl;
+  }
 };
 
 class FriendlyGreeter : public GenericGreeter {
  public:
-	void Greet(const char* name) {
-		cout << "Hello " << name << "! It's a pleasure to meet you!" << endl;
-	}
+  void Greet(const char* name) {
+    cout << "Hello " << name << "! It's a pleasure to meet you!" << endl;
+  }
 };
 
 int main() {
-	FriendlyGreeter* friendlyGreeter = new FriendlyGreeter;
-	GenericGreeter* genericGreeter = (GenericGreeter*)friendlyGreeter;
+  FriendlyGreeter* friendly_greeter = new FriendlyGreeter;
+  GenericGreeter* generic_greeter = (GenericGreeter*)friendly_greeter;
 
-	friendlyGreeter->Greet("Bob");
-	genericGreeter->Greet("Alice");
+  friendly_greeter->Greet("Bob");
+  generic_greeter->Greet("Alice");
 
-	delete friendlyGreeter;
+  delete friendly_greeter;
 
-	return 0;
+  return 0;
 }

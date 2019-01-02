@@ -19,3 +19,13 @@ add_executable(
   greeter_virtual
   "GreeterVirtual.cpp"
 )
+
+add_executable(
+  greeter_manual_vtable
+  "GreeterManualVTable.cpp"
+)
+
+add_executable(
+  greeter_direct_vtable
+  "GreeterDirectVTable.cpp"
+)
