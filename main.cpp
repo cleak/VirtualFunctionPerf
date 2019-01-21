@@ -45,7 +45,7 @@ class IncrementerDirect : public IncrementerBase {
   IncrementerDirect() {}
   virtual ~IncrementerDirect() {}
 
-  // Preventing inling to force a fair comparison.
+  // Prevent inling to force a fair comparison.
   __declspec(noinline) void IncrementDirect() {
     g_update_count += my_num;
   }
@@ -61,7 +61,8 @@ void** GetVTable(T* obj) {
   return *((void***)obj);
 }
 
-// Runs and records timing for virtual function calls, optionally clearing the cache before each run.
+// Runs and records timing for virtual function calls, optionally clearing the
+// cache before each run.
 double RunVirtualCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
   IncrementerBase** objs = new IncrementerBase*[objCount];
   if (!g_useIncrementers) {
@@ -99,8 +100,10 @@ double RunVirtualCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
   return runTime;
 }
 
-// Runs and records timing for virtual function calls, optionally clearing the cache before each run.
-double RunVirtualDirectCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
+// Runs and records timing for virtual function calls, optionally clearing the
+// cache before each run.
+double RunVirtualDirectCalls(int objCount, int runCount,
+														 bool clearCacheBeforeRun) {
   IncrementerBase** objs = new IncrementerBase*[objCount];
   if (!g_useIncrementers) {
     // No-op to prevent compiler optimization
@@ -113,7 +116,8 @@ double RunVirtualDirectCalls(int objCount, int runCount, bool clearCacheBeforeRu
     }
   }
 
-  VoidMemberFn* updateFn = (VoidMemberFn*)(GetVTable(dynamic_cast<IncrementerBase*>(objs[0])) + 0);
+  VoidMemberFn* updateFn = (VoidMemberFn*)(GetVTable(
+			dynamic_cast<IncrementerBase*>(objs[0])) + 0);
 
   double runTime = 0;
   PerfTimer timer;
@@ -124,7 +128,6 @@ double RunVirtualDirectCalls(int objCount, int runCount, bool clearCacheBeforeRu
 
     timer.Start();
     for (int i = 0; i < objCount; ++i) {
-      //objs[i]->Increment();
       (*updateFn)(objs[i]);
     }
     runTime += timer.Stop();
@@ -139,7 +142,8 @@ double RunVirtualDirectCalls(int objCount, int runCount, bool clearCacheBeforeRu
   return runTime;
 }
 
-// Runs and records timing for virtual direct calls, optionally clearing the cache before each run.
+// Runs and records timing for virtual direct calls, optionally clearing the
+// cache before each run.
 double RunDirectCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
   IncrementerDirect** objs = new IncrementerDirect*[objCount];
 
@@ -175,15 +179,11 @@ int main(int argc, char** argv) {
 #ifdef _DEBUG
   constexpr int kNumRuns = 16;
 #else
-  //constexpr int kNumRuns = 64;
   constexpr int kNumRuns = 32;
 #endif
 
   constexpr int kObjStepSize = 256;
   constexpr int kMaxObjs = kObjStepSize * 4 * 64;
-
-  //constexpr int kObjStepSize = 1024 * 8;
-  //constexpr int kMaxObjs = kObjStepSize * 4;
 
   ofstream fout("results.csv");
 
