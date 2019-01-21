@@ -6,57 +6,49 @@
 
 using namespace std;
 
-int g_updateCount = 0;
+static int g_update_count = 0;
 volatile int* g_cahceUnfriendlyBlock = nullptr;
 
 void FlushCache() {
-	constexpr int kBlockSize = 1024 * 1024 * 4;
-	if (!g_cahceUnfriendlyBlock) {
-		g_cahceUnfriendlyBlock = new int[kBlockSize];
-	}
+  constexpr int kBlockSize = 1024 * 1024 * 4;
+  if (!g_cahceUnfriendlyBlock) {
+    g_cahceUnfriendlyBlock = new int[kBlockSize];
+  }
 
-	for (int i = 0; i < kBlockSize; ++i) {
-		g_cahceUnfriendlyBlock[i] = rand();
-	}
+  for (int i = 0; i < kBlockSize; ++i) {
+    g_cahceUnfriendlyBlock[i] = rand();
+  }
 }
 
-class GameObject {
-public:
-	virtual void Update() {}
-
-	virtual ~GameObject() {}
+class IncrementerBase {
+ public:
+  IncrementerBase() {
+    my_num = rand();
+  }
+  virtual ~IncrementerBase() {}
+  virtual void Increment() {}
+  int my_num;
 };
 
-class Incrementer : public GameObject {
-public:
+class IncrementerVirtual : public IncrementerBase {
+ public:
+  IncrementerVirtual() { }
+  virtual ~IncrementerVirtual() {}
 
-	int myNum = 1;
-
-	Incrementer() {
-		myNum = rand();
-	}
-
-	virtual ~Incrementer() {}
-
-	virtual void Update() override{
-		g_updateCount += myNum;
-	}
+  virtual void Increment() override {
+    g_update_count += my_num;
+  }
 };
 
-class IncrementerDirect {
-public:
-	
-	volatile void* fakeVTable = nullptr;
-	int myNum = 1;
+class IncrementerDirect : public IncrementerBase {
+ public:
+  IncrementerDirect() {}
+  virtual ~IncrementerDirect() {}
 
-	IncrementerDirect() {
-		myNum = rand();
-	}
-
-	// Preventing inling to force an apples-to-apples comparison
-	__declspec(noinline) void Update() {
-		g_updateCount += myNum;
-	}
+  // Preventing inling to force a fair comparison.
+  __declspec(noinline) void IncrementDirect() {
+    g_update_count += my_num;
+  }
 };
 
 volatile bool g_useIncrementers = true;
@@ -66,150 +58,150 @@ typedef void(*VoidMemberFn)(void*);
 // Retrieves a pointer to the given object's VTable.
 template <typename T>
 void** GetVTable(T* obj) {
-	return *((void***)obj);
+  return *((void***)obj);
 }
 
 // Runs and records timing for virtual function calls, optionally clearing the cache before each run.
 double RunVirtualCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
-	GameObject** objs = new GameObject*[objCount];
-	if (!g_useIncrementers) {
-		// No-op to prevent compiler optimization
-		for (int i = 0; i < objCount; ++i) {
-			objs[i] = new GameObject();
-		}
-	}
-	else {
-		for (int i = 0; i < objCount; ++i) {
-			objs[i] = new Incrementer();
-		}
-	}
+  IncrementerBase** objs = new IncrementerBase*[objCount];
+  if (!g_useIncrementers) {
+    // No-op to prevent compiler optimization
+    for (int i = 0; i < objCount; ++i) {
+      objs[i] = new IncrementerBase();
+    }
+  }
+  else {
+    for (int i = 0; i < objCount; ++i) {
+      objs[i] = new IncrementerVirtual();
+    }
+  }
 
-	double runTime = 0;
-	PerfTimer timer;
-	for (int j = 0; j < runCount; ++j) {
-		if (clearCacheBeforeRun) {
-			FlushCache();
-		}
+  double runTime = 0;
+  PerfTimer timer;
+  for (int j = 0; j < runCount; ++j) {
+    if (clearCacheBeforeRun) {
+      FlushCache();
+    }
 
-		timer.Start();
-		for (int i = 0; i < objCount; ++i) {
-			objs[i]->Update();
-		}
-		runTime += timer.Stop();
-	}
+    timer.Start();
+    for (int i = 0; i < objCount; ++i) {
+      objs[i]->Increment();
+    }
+    runTime += timer.Stop();
+  }
 
-	// Cleanup
-	for (int i = 0; i < objCount; ++i) {
-		delete objs[i];
-	}
-	delete[] objs;
+  // Cleanup
+  for (int i = 0; i < objCount; ++i) {
+    delete objs[i];
+  }
+  delete[] objs;
 
-	return runTime;
+  return runTime;
 }
 
 // Runs and records timing for virtual function calls, optionally clearing the cache before each run.
 double RunVirtualDirectCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
-	GameObject** objs = new GameObject*[objCount];
-	if (!g_useIncrementers) {
-		// No-op to prevent compiler optimization
-		for (int i = 0; i < objCount; ++i) {
-			objs[i] = new GameObject();
-		}
-	} else {
-		for (int i = 0; i < objCount; ++i) {
-			objs[i] = new Incrementer();
-		}
-	}
+  IncrementerBase** objs = new IncrementerBase*[objCount];
+  if (!g_useIncrementers) {
+    // No-op to prevent compiler optimization
+    for (int i = 0; i < objCount; ++i) {
+      objs[i] = new IncrementerBase();
+    }
+  } else {
+    for (int i = 0; i < objCount; ++i) {
+      objs[i] = new IncrementerVirtual();
+    }
+  }
 
-	VoidMemberFn* updateFn = (VoidMemberFn*)(GetVTable(dynamic_cast<GameObject*>(objs[0])) + 0);
+  VoidMemberFn* updateFn = (VoidMemberFn*)(GetVTable(dynamic_cast<IncrementerBase*>(objs[0])) + 0);
 
-	double runTime = 0;
-	PerfTimer timer;
-	for (int j = 0; j < runCount; ++j) {
-		if (clearCacheBeforeRun) {
-			FlushCache();
-		}
+  double runTime = 0;
+  PerfTimer timer;
+  for (int j = 0; j < runCount; ++j) {
+    if (clearCacheBeforeRun) {
+      FlushCache();
+    }
 
-		timer.Start();
-		for (int i = 0; i < objCount; ++i) {
-			//objs[i]->Update();
-			(*updateFn)(objs[i]);
-		}
-		runTime += timer.Stop();
-	}
+    timer.Start();
+    for (int i = 0; i < objCount; ++i) {
+      //objs[i]->Increment();
+      (*updateFn)(objs[i]);
+    }
+    runTime += timer.Stop();
+  }
 
-	// Cleanup
-	for (int i = 0; i < objCount; ++i) {
-		delete objs[i];
-	}
-	delete[] objs;
+  // Cleanup
+  for (int i = 0; i < objCount; ++i) {
+    delete objs[i];
+  }
+  delete[] objs;
 
-	return runTime;
+  return runTime;
 }
 
 // Runs and records timing for virtual direct calls, optionally clearing the cache before each run.
 double RunDirectCalls(int objCount, int runCount, bool clearCacheBeforeRun) {
-	IncrementerDirect** objs = new IncrementerDirect*[objCount];
+  IncrementerDirect** objs = new IncrementerDirect*[objCount];
 
-	for (int i = 0; i < objCount; ++i) {
-		objs[i] = new IncrementerDirect();
-	}
+  for (int i = 0; i < objCount; ++i) {
+    objs[i] = new IncrementerDirect();
+  }
 
-	double runTime = 0;
-	PerfTimer timer;
+  double runTime = 0;
+  PerfTimer timer;
 
-	for (int j = 0; j < runCount; ++j) {
-		if (clearCacheBeforeRun) {
-			FlushCache();
-		}
+  for (int j = 0; j < runCount; ++j) {
+    if (clearCacheBeforeRun) {
+      FlushCache();
+    }
 
-		timer.Start();
-		for (int i = 0; i < objCount; ++i) {
-			objs[i]->Update();
-		}
-		runTime += timer.Stop();
-	}
+    timer.Start();
+    for (int i = 0; i < objCount; ++i) {
+      objs[i]->IncrementDirect();
+    }
+    runTime += timer.Stop();
+  }
 
-	// Cleanup
-	for (int i = 0; i < objCount; ++i) {
-		delete objs[i];
-	}
-	delete[] objs;
+  // Cleanup
+  for (int i = 0; i < objCount; ++i) {
+    delete objs[i];
+  }
+  delete[] objs;
 
-	return runTime;
+  return runTime;
 }
 
 int main(int argc, char** argv) {
 #ifdef _DEBUG
-	constexpr int kNumRuns = 16;
+  constexpr int kNumRuns = 16;
 #else
-	//constexpr int kNumRuns = 64;
-	constexpr int kNumRuns = 32;
+  //constexpr int kNumRuns = 64;
+  constexpr int kNumRuns = 32;
 #endif
 
-	constexpr int kObjStepSize = 256;
-	constexpr int kMaxObjs = kObjStepSize * 4 * 64;
+  constexpr int kObjStepSize = 256;
+  constexpr int kMaxObjs = kObjStepSize * 4 * 64;
 
-	//constexpr int kObjStepSize = 1024 * 8;
-	//constexpr int kMaxObjs = kObjStepSize * 4;
+  //constexpr int kObjStepSize = 1024 * 8;
+  //constexpr int kMaxObjs = kObjStepSize * 4;
 
-	ofstream fout("results.csv");
+  ofstream fout("results.csv");
 
-	for (int n = kObjStepSize; n <= kMaxObjs; n += kObjStepSize) {
-		stringstream ss;
-		ss << n << ", ";
-		ss << RunVirtualCalls(n, kNumRuns, false) * 1000.0 << ", ";
-		ss << RunDirectCalls(n, kNumRuns, false) * 1000.0 << ", ";
-		ss << RunVirtualCalls(n, kNumRuns, true) * 1000.0 << ", ";
-		ss << RunDirectCalls(n, kNumRuns, true) * 1000.0 << ", ";
-		ss << RunVirtualDirectCalls(n, kNumRuns, true) * 1000.0;
+  for (int n = kObjStepSize; n <= kMaxObjs; n += kObjStepSize) {
+    stringstream ss;
+    ss << n << ", ";
+    ss << RunVirtualCalls(n, kNumRuns, false) * 1000.0 << ", ";
+    ss << RunDirectCalls(n, kNumRuns, false) * 1000.0 << ", ";
+    ss << RunVirtualCalls(n, kNumRuns, true) * 1000.0 << ", ";
+    ss << RunDirectCalls(n, kNumRuns, true) * 1000.0 << ", ";
+    ss << RunVirtualDirectCalls(n, kNumRuns, true) * 1000.0;
 
-		cout << ss.str() << endl;
-		fout << ss.str() << endl;
-	}
+    cout << ss.str() << endl;
+    fout << ss.str() << endl;
+  }
 
-	fout.close();
+  fout.close();
 
-	system("PAUSE");
-	return 0;
+  system("PAUSE");
+  return 0;
 }

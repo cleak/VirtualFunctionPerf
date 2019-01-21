@@ -33,7 +33,7 @@ struct GenericGreeter_VTable {
 
 GenericGreeter_VTable* GetVTable(GenericGreeter* obj) {
   GenericGreeter_VTable** vtable_ptr = (GenericGreeter_VTable**)obj;
-  return *(vtable_ptr);
+  return *vtable_ptr;
 }
 
 int main() {

@@ -29,3 +29,13 @@ add_executable(
   greeter_direct_vtable
   "GreeterDirectVTable.cpp"
 )
+
+add_executable(
+  grouped_calls
+  "GroupedCalls.cpp"
+)
+
+add_executable(
+  override_check
+  "OverrideCheck.cpp"
+)
