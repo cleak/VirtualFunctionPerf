@@ -117,7 +117,7 @@ double RunVirtualDirectCalls(int objCount, int runCount,
   }
 
   VoidMemberFn* updateFn = (VoidMemberFn*)(GetVTable(
-			dynamic_cast<IncrementerBase*>(objs[0])) + 0);
+			dynamic_cast<IncrementerBase*>(objs[0])) + 1);
 
   double runTime = 0;
   PerfTimer timer;
